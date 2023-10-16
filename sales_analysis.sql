@@ -1,5 +1,7 @@
 -- Customer and Sales Data
 
+-- To watch the video version of this project, please click on the link: https://www.youtube.com/watch?v=0Ds_mGiw_3s
+
 -- For this project, i used the Sales and Customer data from Kaggle: https://www.kaggle.com/datasets/dataceo/sales-and-customer-data?select=customer_data.csv
 
 /* 
