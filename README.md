@@ -2,8 +2,8 @@
 
 
 # Education
---Professional Data Analyst Certificate, Data Camp
---1st Class Honours Degree in Foreign Languages and Translation, University of Strathclyde
+- Professional Data Analyst Certificate, Data Camp
+- 1st Class Honours Degree in Foreign Languages and Translation, University of Strathclyde
 
 # Work Experience
 Self-Taught Content Creator Data Analyst, YouTube (September 2020-Present)
