@@ -1,0 +1,324 @@
+==The Effects of Social Media on Mental Health
+
+/* 
+With the rise of social media, there has been a lot of discussion on the effects is can have on the mental 
+health of individuals. Although wider and more long-term studies are still to come, it is interesting to analyse
+the data currently availible.
+
+In this project I will take the following dataset to analyse trends in time on social media and the effects it 
+can have on individuals within the scope of these 4 questions:
+
+* Which social media platforms are the most commonly used among the survey participants?
+* Does the time spent on social media have a significant impact on the likelihood of experiencing symptoms associated
+with mental disorders, specifically ADHD, anxiety, self-esteem issues, and depression??
+* Does age have any correlation in time spent online?
+* What is the most common time online for each relationship group?
+
+Information on the dataset
+​
+This particular dataset comes from a research project for a statistics course at the University of Liberal Arts 
+Bangladesh which surveyed 481 of individuals in a project aiming at investigating correlation between the amount
+of time spent on social and mental health. It must be noted that data this small is not a true reflection of a 
+population, and so it would be interesting to see a larger scale version of this dataset in the future.
+​
+Credit to: Souvik Ahmed and Muhesena Nasiha Syeda 
+*/
+
+--Scope of the dataset
+/* 
+The first coloumns of the dataset are the following variables:
+* Age
+* gender
+* relationship status
+* occupational status
+* affiliated organisations
+* social media used
+* time spent on social media in hours.
+
+The second part of the survey used a likert scale with the following questions, each one being tied for a potential mental disorder:
+
+* How often do you find yourself using Social media without a specific purpose? 
+* How often do you get distracted by Social media when you are busy doing something?
+* Do you feel restless if you haven't used Social media in a while?
+* How easily distracted are you?
+* How much are you bothered by worries?
+* Do you find it difficult to concentrate on things?
+* How often do you compare yourself to other successful people through the use of social media?
+* Following the previous question, how do you feel about these comparisons, generally speaking?
+* How often do you feel depressed or down?
+* How frequently does your interest in daily activities fluctuate?
+* How often do you face issues regarding sleep?
+*/
+
+
+--Data Exploration
+
+SELECT
+  column_name,
+  data_type
+FROM
+  `social-media-and-mental-health.social_media_survey.INFORMATION_SCHEMA.COLUMNS`
+WHERE
+  table_name = 'questionaire';
+
+  Row	Column Name	Data Type
+1	Timestamp	TIMESTAMP
+2	1__What_is_your_age	FLOAT64
+3	_2__Gender	STRING
+4	_3__Relationship_Status	STRING
+5	_4__Occupation_Status	STRING
+6	5__What_type_of_organizations_are_you_affiliated_with	STRING
+7	6__Do_you_use_social_media	BOOL
+8	7__What_social_media_platforms_do_you_commonly_use	STRING
+9	8__What_is_the_average_time_you_spend_on_social_media_every_day	STRING
+10	9__How_often_do_you_find_yourself_using_Social_media_without_a_specific_purpose	INT64
+
+/*  
+The column names are very chunky, and not every column has the right data type.
+*/
+
+SELECT COUNT(*) AS row_count 
+FROM `social-media-and-mental-health.social_media_survey.questionaire`;
+
+/* 
+There are 481 responses
+*/
+
+--Data Cleaning
+
+/*
+Althoughh this dataset is pretty clean, there are a few changes needed:
+
+* Simplify the column names to be easier to read and use.
+* Only add in relevant columns to a temporary table.
+* Cast age as an integer
+* Standardise the gender responses as there are four versions of non-binary within the data.
+- In the following CTE, I also decided to separate the float response of the question "Which platforms do you use"
+in order to ease my visualisation step. Instead, I will add new columns with each social media otpion and a boolean response.
+
+*/
+
+WITH survey AS (
+  SELECT
+    Timestamp
+    ,CASE 
+      WHEN _2__Gender = 'Female' THEN 'female'
+      WHEN _2__Gender = 'Male' THEN 'male'
+      ELSE 'other' 
+    END AS gender
+    ,CAST(_1__What_is_your_age_ AS INT) AS age
+    ,_3__Relationship_Status AS relationship
+    ,_4__Occupation_Status AS occupation
+    ,_6__Do_you_use_social_media_ AS use_social_media
+    ,_7__What_social_media_platforms_do_you_commonly_use_ AS platforms
+    , _8__What_is_the_average_time_you_spend_on_social_media_every_day_ AS time_online
+    ,_9__How_often_do_you_find_yourself_using_Social_media_without_a_specific_purpose_ AS purposeless_scrolling
+    ,_10__How_often_do_you_get_distracted_by_Social_media_when_you_are_busy_doing_something_ AS often_distracted
+    ,_11__Do_you_feel_restless_if_you_haven_t_used_Social_media_in_a_while_ AS restless
+    ,_12__On_a_scale_of_1_to_5__how_easily_distracted_are_you_ AS how_distracted
+    ,_13__On_a_scale_of_1_to_5__how_much_are_you_bothered_by_worries_ AS worried
+    ,_14__Do_you_find_it_difficult_to_concentrate_on_things_ AS difficulty_concentrating
+    ,_15__On_a_scale_of_1_5__how_often_do_you_compare_yourself_to_other_successful_people_through_the_use_of_social_media_ AS compare
+    ,_17__How_often_do_you_look_to_seek_validation_from_features_of_social_media_ AS seek_validation
+    ,_18__How_often_do_you_feel_depressed_or_down_ AS often_depressed
+    ,_19__On_a_scale_of_1_to_5__how_frequently_does_your_interest_in_daily_activities_fluctuate_ AS daily_interest
+    ,_20__On_a_scale_of_1_to_5__how_often_do_you_face_issues_regarding_sleep_ AS sleep_problems
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%tiktok%', TRUE, FALSE) AS use_tiktok
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%facebook%', TRUE, FALSE) AS use_facebook
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%twitter%', TRUE, FALSE) AS use_twitter
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%pinterest%', TRUE, FALSE) AS use_pinterest
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%snapchat%', TRUE, FALSE) AS use_snapchat
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%discord%', TRUE, FALSE) AS use_discord
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%instagram%', TRUE, FALSE) AS use_instagram
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%youtube%', TRUE, FALSE) AS use_youtube
+    ,IF(LOWER(_7__What_social_media_platforms_do_you_commonly_use_) LIKE '%reddit%', TRUE, FALSE) AS use_reddit
+  FROM `social-media-and-mental-health.social_media_survey.questionaire`
+)
+SELECT * 
+FROM survey;
+
+
+
+-- Data Analysis
+
+
+
+/*
+Question 1: Does the age of the participant correlate to the time spent online?
+Answer
+Correlation_age_time = -0.361
+This means that the age of the participant does not correlate to the time spent online. So much for boomers saying
+that Gen Z is the problem...
+*/
+
+time_online_correlation AS (
+  SELECT
+    CASE WHEN time_online = 'More than 5 hours' THEN 6
+        WHEN time_online  = 'Between 4 and 5 hours' THEN 5
+        WHEN time_online  = 'Between 3 and 4 hours' THEN 4
+        WHEN time_online  = 'Between 2 and 3 hours' THEN 3
+        WHEN time_online = 'Between 1 and 2 hours' THEN 2
+        ELSE 1
+        END AS time_on_sm
+    ,age
+    FROM survey) 
+
+SELECT
+  CORR(age, time_on_sm) AS correlation_age_time
+FROM time_online_correlation;
+
+
+
+
+/*
+
+Question 2: 
+Which social media platforms are the most commonly used among the survey participants?
+
+For the following question, I'm interested in getting a percentage of users in the survey 
+on each platform:
+
+Answer:
+
+tiktok_percentage= 19.54%
+
+facebook_percentage= 84.62%
+
+twitter_percentage= 27.3%
+
+pintrest_percentage= 30.15%
+
+snapchat_percentage= 37.63%
+
+discord_percentage= 41.16%
+
+instagram_percentage= 74.64%
+
+youtube_percentage= 85.65%
+
+The most used platform amongst survey participants was YouTube, with 85.65% addmitting to using the platofrm.
+This was shortly following by Facebook at 84.62%.
+
+This data was taken before the rise of TikTok during the Covid Pandemic. It would be interesting to have 
+surveyed the same indiviudals in 2024 to see the change in platforms that individuals use.
+*/
+
+SELECT
+  ROUND((COUNTIF(use_tiktok) / COUNT(*))*100,2) AS tiktok_percentage,
+  ROUND((COUNTIF(use_facebook) / COUNT(*))*100,2) AS facebook_percentage,
+  ROUND((COUNTIF(use_twitter) / COUNT(*))*100,2) AS twitter_percentage,
+  ROUND((COUNTIF(use_pinterest) / COUNT(*))*100,2) AS pinterest_percentage,
+  ROUND((COUNTIF(use_snapchat) / COUNT(*))*100,2) AS snapchat_percentage,
+  ROUND((COUNTIF(use_discord) / COUNT(*))*100,2) AS discord_percentage,
+  ROUND((COUNTIF(use_instagram) / COUNT(*))*100,2) AS instagram_percentage,
+  ROUND((COUNTIF(use_youtube) / COUNT(*))*100,2) AS youtube_percentage
+FROM
+  survey;
+
+
+
+
+  /*
+  Question 3: Does the time spent on social media have a significant impact on the likelihood
+  of experiencing symptoms associated with mental disorders, specifically ADHD, anxiety, 
+  self-esteem issues, and depression??
+
+For the following question, my current data will need some temporary rejigging. The students 
+who created the survey categorised the questions into one of the following Mental Health Disorders:
+* ADHD (purposeless_scrolling, often_distracted, how_distracted, difficulty_concentrating)
+* Anxiety (restless,worried)
+* Depression (often_depressed, daily_interest,sleep_problems)
+* Low Self Esteem (compare, seek_validation)
+
+I will have to group the question responses into these sections and calculate the mean value for each participant.
+
+Answer:
+
+very single negative mental health average score got higher when the time online increases, suggesting that more time online does lead to a higher chance of poor mental health amoung these participants.
+
+Row	        time_online       	         adhd_mean	         anxiety_mean        	depression_mean         	self_esteem_mean
+1          	Between 2 and 3 hours	       3.334	             3.015	              3.102	                    2.540
+2         	More than 5 hours	           3.817	             3.599	              3.603	                    2.841
+3         	Between 3 and 4 hours      	 3.530              3.263	                3.351                   	2.785
+4         	Less than an Hour	           2.015	            1.868	                2.225	                    2.103
+5          	Between 1 and 2 hours     	 2.839            	2.443               	2.824	                    2.379
+6          	Between 4 and 5 hours	       3.649	            3.261                	3.393	                    2.813
+  */
+
+  mental_health_data AS (
+  SELECT
+    time_online,
+    AVG((purposeless_scrolling + often_distracted + how_distracted + difficulty_concentrating) / 4) AS adhd_mean,
+    AVG((restless + worried) / 2) AS anxiety_mean,
+    AVG((often_depressed + daily_interest + sleep_problems) / 3) AS depression_mean,
+    AVG((compare + seek_validation) / 2) AS self_esteem_mean
+  FROM survey
+  GROUP BY time_online
+)
+
+SELECT *
+FROM mental_health_data;
+
+
+/* 
+Question 4:  What is the most common time online for each relationship group?
+
+Answer:
+Row	      Relationship	            Most_Common_Time_Online
+1       	Married	                  Between 1 and 2 hours
+2	        Divorced                 	Less than an Hour
+3        	Single	                  More than 5 hours
+4	        In a relationship	        More than 5 hours
+
+
+The groups that spent the most time online were those in a relationship and those who were single,
+with the most common reponse being More than 5 hours.
+The divorced groups spent the least amount of time online with less than one hour.
+
+Perhaps those in a relationship should spent more time offlilne with their partners :)
+
+*/
+
+
+ranked_times AS (
+    SELECT 
+        relationship,
+        time_online,
+        ROW_NUMBER() OVER (PARTITION BY relationship ORDER BY COUNT(*) DESC) AS row_num
+    FROM survey
+    GROUP BY relationship, time_online
+)
+
+SELECT 
+    relationship,
+    time_online AS most_common_time_online
+FROM ranked_times
+WHERE row_num = 1;
+
+
+
+
+
+--Conclusion
+
+/*
+Correlation between Age and Time Spent Online: The correlation coefficient between age and time spent online is 0.361.
+This value indicates a weak positive correlation. Contrary to popular belief or stereotypes, this suggests that the age of
+the participant does not strongly correlate with the amount of time spent online. Therefore, claims blaming younger generations,
+such as Gen Z, for excessive internet usage may not be entirely accurate or applicable to this dataset.
+
+Platform Usage Among Survey Participants: According to the survey data, YouTube was the most commonly used platform among 
+participants, with 85.65% admitting to using it. Following closely behind is Facebook, with 84.62% of participants acknowledging
+its usage. Notably, this data was collected before the widespread popularity of TikTok during the Covid-19 pandemic. Considering
+the rapid shifts in social media trends, it would be intriguing to re-survey the same individuals in 2024 to observe any changes
+in platform preferences over time.
+
+Relationship Between Time Online and Mental Health: An interesting trend emerges when analyzing the relationship between time 
+spent online and participants' mental health. As the time spent online increases, every negative mental health average score also
+increases. This suggests a potential correlation between prolonged internet usage and poorer mental health among participants.
+However, since this data is on such a small scale, we cannot conclude this to be the truth for the whole population.
+
+Relationship Status and Time Online: The groups that spent the most time online were those in a relationship and those who 
+were single, with the most common reponse being More than 5 hours. The divorced groups spent the least amount of time online
+with less than one hour.
+*/
